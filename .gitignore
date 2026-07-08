@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environments
+.env
+.venv/
+venv/
+ENV/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Data and large artifacts
+data/*
+outputs/*
+*.pt
+*.pth
+*.ckpt
+
+# Keep folder placeholders
+!data/.gitkeep
+!outputs/.gitkeep
