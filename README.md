@@ -17,12 +17,25 @@ Install project as a Python package:
 python -m pip install -e .
 ```
 
+Install PyTorch and TorchGeo (not in `environment.yml`; installed via pip; )
+Check before running:
+
+```bash
+python -m pip install torch torchvision torchgeo
+```
+
 Run the check:
 
 ```bash
 python scripts/check_imports.py
 pytest -q
 ```
+
+Data Download:
+https://zenodo.org/records/7711810/files/EuroSAT_MS.zip
+
+Extract to ./data/EuroSAT_MS
+
 
 ## PR Rule
 
