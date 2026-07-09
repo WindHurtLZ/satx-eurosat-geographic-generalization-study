@@ -1,0 +1,120 @@
+"""Configuration objects for SatX training runs."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass, fields
+from pathlib import Path
+from typing import Literal
+
+
+Modality = Literal["rgb", "ms"]
+SplitType = Literal["random", "spatial", "standard"]
+ModelInputMode = Literal["direct", "adapter"]
+
+
+@dataclass(frozen=True)
+class TrainingConfig:
+    """Serializable training configuration for a EuroSAT ResNet run."""
+
+    modality: Modality = "rgb"
+    split_type: SplitType = "spatial"
+    data_dir: str = "./data"
+    splits_dir: str = "./splits_data"
+    output_dir: str = "./outputs/runs"
+    model_input_mode: ModelInputMode = "direct"
+    num_classes: int = 10
+    pretrained: bool = False
+    epochs: int = 5
+    batch_size: int = 32
+    num_workers: int = 0
+    learning_rate: float = 1e-3
+    weight_decay: float = 1e-4
+    seed: int = 42
+    device: str = "auto"
+    pin_memory: bool = True
+
+    def __post_init__(self) -> None:
+        valid_modalities = {"rgb", "ms"}
+        valid_split_types = {"random", "spatial", "standard"}
+        valid_input_modes = {"direct", "adapter"}
+
+        if self.modality not in valid_modalities:
+            raise ValueError(f"modality must be one of {sorted(valid_modalities)}.")
+        if self.split_type not in valid_split_types:
+            raise ValueError(f"split_type must be one of {sorted(valid_split_types)}.")
+        if self.model_input_mode not in valid_input_modes:
+            raise ValueError(
+                f"model_input_mode must be one of {sorted(valid_input_modes)}."
+            )
+        if self.num_classes < 1:
+            raise ValueError("num_classes must be positive.")
+        if self.epochs < 1:
+            raise ValueError("epochs must be positive.")
+        if self.batch_size < 1:
+            raise ValueError("batch_size must be positive.")
+        if self.num_workers < 0:
+            raise ValueError("num_workers cannot be negative.")
+        if self.learning_rate <= 0:
+            raise ValueError("learning_rate must be positive.")
+        if self.weight_decay < 0:
+            raise ValueError("weight_decay cannot be negative.")
+
+    @property
+    def in_channels(self) -> int:
+        """Return the channel count implied by the selected modality."""
+        if self.modality == "rgb":
+            return 3
+        if self.modality == "ms":
+            return 13
+        raise ValueError("modality must be either 'rgb' or 'ms'.")
+
+    @property
+    def run_name(self) -> str:
+        """Stable default run name used for outputs and checkpoints."""
+        weights = "pretrained" if self.pretrained else "scratch"
+        return (
+            f"resnet50_{self.modality}_{self.split_type}_"
+            f"{self.model_input_mode}_{weights}_seed{self.seed}"
+        )
+
+    def as_dict(self) -> dict:
+        """Return a JSON-serializable dictionary representation."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, values: dict) -> "TrainingConfig":
+        """Create a config from a dict, rejecting unknown keys."""
+        valid_names = {field.name for field in fields(cls)}
+        unknown = set(values) - valid_names
+        if unknown:
+            unknown_text = ", ".join(sorted(unknown))
+            raise ValueError(f"Unknown TrainingConfig field(s): {unknown_text}")
+        return cls(**values)
+
+    def run_dir(self) -> Path:
+        """Return this run's output directory."""
+        return Path(self.output_dir) / self.run_name
+
+
+def load_training_config(path: str | Path) -> TrainingConfig:
+    """Load a TrainingConfig from a JSON or YAML file."""
+    path = Path(path)
+    with open(path, "r", encoding="utf-8") as f:
+        if path.suffix.lower() == ".json":
+            values = json.load(f)
+        elif path.suffix.lower() in {".yaml", ".yml"}:
+            try:
+                import yaml
+            except ImportError as exc:
+                raise ImportError(
+                    "Loading YAML training configs requires PyYAML. "
+                    "Install it with `python -m pip install pyyaml`."
+                ) from exc
+            values = yaml.safe_load(f) or {}
+        else:
+            raise ValueError("Training config files must use .json, .yaml, or .yml.")
+
+    if not isinstance(values, dict):
+        raise ValueError("Training config file must contain a mapping/object.")
+    return TrainingConfig.from_dict(values)
