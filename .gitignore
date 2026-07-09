@@ -26,7 +26,7 @@ ENV/
 .vscode/
 
 # Data and large artifacts
-data/*
+data/EuroSAT_MS/*
 outputs/*
 *.pt
 *.pth
