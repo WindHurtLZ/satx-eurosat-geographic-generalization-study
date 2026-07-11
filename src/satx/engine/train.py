@@ -81,13 +81,15 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device) -> dict:
     }
 
 
-def validate(model, dataloader, criterion, device) -> dict:
+def validate(model, dataloader, criterion, device, return_predictions: bool = False) -> dict:
     """Evaluate on a validation DataLoader and return loss/accuracy metrics."""
     torch = _require_torch()
     model.eval()
     total_loss = 0.0
     total_correct = 0
     total_seen = 0
+    all_y_true = []
+    all_y_pred = []
 
     with torch.no_grad():
         for images, labels in dataloader:
@@ -95,18 +97,31 @@ def validate(model, dataloader, criterion, device) -> dict:
             labels = labels.to(device, non_blocking=True).long()
 
             logits = model(images)
+            preds = logits.argmax(dim=1)
             loss = criterion(logits, labels)
 
             batch_size = labels.numel()
-            correct, seen = _batch_accuracy(logits, labels)
+            correct = (preds == labels).sum().item()
+            seen = batch_size
+
             total_loss += loss.item() * batch_size
             total_correct += correct
             total_seen += seen
 
-    return {
+            if return_predictions:
+                all_y_true.extend(labels.detach().cpu().tolist())
+                all_y_pred.extend(preds.detach().cpu().tolist())
+
+    result = {
         "loss": total_loss / max(total_seen, 1),
         "accuracy": total_correct / max(total_seen, 1),
     }
+
+    if return_predictions:
+        result["y_true"] = all_y_true
+        result["y_pred"] = all_y_pred
+
+    return result
 
 
 def save_checkpoint(path: str | Path, model, optimizer, config: TrainingConfig, epoch: int, metrics: dict) -> None:
@@ -160,7 +175,13 @@ def fit(config: TrainingConfig) -> dict:
 
     for epoch in range(1, config.epochs + 1):
         train_metrics = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_metrics = validate(model, val_loader, criterion, device)
+        val_metrics = validate(
+            model,
+            val_loader,
+            criterion,
+            device,
+            return_predictions=(epoch == config.epochs),
+        )
         epoch_record = {
             "epoch": epoch,
             "train": train_metrics,
