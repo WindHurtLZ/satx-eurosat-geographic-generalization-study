@@ -68,6 +68,10 @@ python scripts/train.py configs/ms_spatial.yaml
 
 The config files default to 5 epochs; reduce `epochs` for local smoke tests.
 
+Note: All training and evaluation paths are resolved from the repository root,
+not from the process working directory. Running the same configuration from
+the project root or notebooks writes to the same
+`outputs/runs/<run_name>` directory.
 
 ## PR Rule
 

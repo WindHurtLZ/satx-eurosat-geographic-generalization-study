@@ -27,10 +27,12 @@ ENV/
 
 # Data and large artifacts
 data/EuroSAT_MS/*
+data/*.zip
 outputs/*
 *.pt
 *.pth
 *.ckpt
+notebooks/outputs/
 
 # Keep folder placeholders
 !data/.gitkeep
