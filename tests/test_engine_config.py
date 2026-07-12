@@ -11,6 +11,7 @@ def test_training_config_defaults():
     assert config.modality == "rgb"
     assert config.in_channels == 3
     assert "resnet50_rgb_spatial_direct" in config.run_name
+    assert config.run_dir().is_absolute()
 
 
 def test_training_config_multispectral_channels():

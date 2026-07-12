@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Literal
 
+from satx.utils.paths import resolve_project_path
 
 Modality = Literal["rgb", "ms"]
 SplitType = Literal["random", "spatial", "standard"]
@@ -94,7 +95,17 @@ class TrainingConfig:
 
     def run_dir(self) -> Path:
         """Return this run's output directory."""
-        return Path(self.output_dir) / self.run_name
+        output_root = resolve_project_path(self.output_dir)
+        return output_root / self.run_name
+
+    def evaluation_dir(self, split: str) -> Path:
+        """
+        Return the directory for one evaluation split
+        """
+        if split not in {"validation", "test"}:
+            raise ValueError("split must be either 'validation' or 'test'.")
+
+        return self.run_dir() / "evaluation" / split
 
 
 def load_training_config(path: str | Path) -> TrainingConfig:
