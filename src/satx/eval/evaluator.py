@@ -1,22 +1,13 @@
-import os
-import sys
 import json
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
+from pathlib import Path
 
-# Resolve path to include the 'src' directory for local development
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-src_dir = os.path.join(project_root, "src")
+from satx.data import CLASS_NAMES
+from satx.utils.paths import resolve_project_path
 
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
-
-from satx.data import CLASS_NAMES 
-
-
-def generate_evaluation_artifact(y_true, y_pred, output_path="evaluation_artifact.json"):
+def generate_evaluation_artifact(y_true, y_pred, output_path: str | Path):
     """
     Calculate evaluation metrics and generate standardized JSON artifact.
 
@@ -28,6 +19,9 @@ def generate_evaluation_artifact(y_true, y_pred, output_path="evaluation_artifac
     Returns:
         dict: The generated artifact containing metrics and confusion matrix.
     """
+    output_path = resolve_project_path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     # Calculate core metrics
     acc = accuracy_score(y_true, y_pred)
     macro_f1 = f1_score(y_true, y_pred, average='macro')
@@ -51,7 +45,7 @@ def generate_evaluation_artifact(y_true, y_pred, output_path="evaluation_artifac
     }
 
     # Export artifact to JSON
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with output_path.open('w', encoding='utf-8') as f:
         json.dump(artifact, f, indent=4)
     
     print(f"Evaluation artifact successfully saved to: {output_path}")
@@ -74,10 +68,13 @@ def print_evaluation_results(artifact):
     print("="*55 + "\n")
 
 
-def plot_evaluation_results(artifact, output_dir):
+def plot_evaluation_results(artifact, output_dir: str | Path):
     """
     Generate and save visualization plots for the evaluation results.
     """
+    output_dir = resolve_project_path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     classes = artifact['metadata']['classes']
     cm = np.array(artifact['confusion_matrix'])
 
@@ -87,7 +84,7 @@ def plot_evaluation_results(artifact, output_dir):
     disp.plot(cmap='Blues', ax=ax, xticks_rotation=45, colorbar=True) # 明确启用 colorbar
     plt.title('Confusion Matrix', pad=20)
     plt.tight_layout()
-    cm_path = os.path.join(output_dir, "confusion_matrix.png")
+    cm_path = output_dir / "confusion_matrix.png"
     plt.savefig(cm_path, dpi=300)
     plt.close()
 
@@ -106,7 +103,7 @@ def plot_evaluation_results(artifact, output_dir):
         plt.text(bar.get_x() + bar.get_width()/2, yval + 0.01, f'{yval:.2f}', ha='center', va='bottom', fontsize=9)
         
     plt.tight_layout()
-    f1_path = os.path.join(output_dir, "per_class_f1.png")
+    f1_path = output_dir / "per_class_f1.png"
     plt.savefig(f1_path, dpi=300)
     plt.close()
 
@@ -114,6 +111,9 @@ def plot_evaluation_results(artifact, output_dir):
 
 
 if __name__ == "__main__":
+    mock_output_dir = resolve_project_path("outputs/evaluation_mock")
+    mock_output_dir.mkdir(parents=True, exist_ok=True)
+
     # Run a local test with mock data
     mock_y_true = np.random.randint(0, len(CLASS_NAMES), 100)
     mock_y_pred = mock_y_true.copy()
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     mock_y_pred[noise_indices] = np.random.randint(0, len(CLASS_NAMES), 20)
 
     # Define output paths
-    output_file_path = os.path.join(current_dir, "mock_results.json")
+    output_file_path = mock_output_dir / "mock_results.json"
 
     # Generate artifact
     result = generate_evaluation_artifact(mock_y_true, mock_y_pred, output_file_path)
@@ -132,4 +132,4 @@ if __name__ == "__main__":
     print_evaluation_results(result)
     
     # Generate visualization plots
-    plot_evaluation_results(result, current_dir)
+    plot_evaluation_results(result, mock_output_dir)
