@@ -141,6 +141,36 @@ def save_checkpoint(path: str | Path, model, optimizer, config: TrainingConfig, 
     )
 
 
+def _print_run_start(config: TrainingConfig, device) -> None:
+    """Print a concise training run summary."""
+    print(
+        f"Starting run: {config.run_name}\n"
+        f"Device: {device}\n"
+        f"Epochs: {config.epochs}\n"
+        f"Batch size: {config.batch_size}\n",
+        flush=True,
+    )
+
+
+def _print_epoch_summary(
+    epoch: int,
+    config: TrainingConfig,
+    train_metrics: dict,
+    val_metrics: dict,
+    best_val_accuracy: float,
+) -> None:
+    """Print train/validation metrics after one epoch."""
+    print(
+        f"Epoch {epoch:02d}/{config.epochs}\n"
+        f"  train loss={train_metrics['loss']:.4f} "
+        f"acc={train_metrics['accuracy']:.4f}\n"
+        f"  val   loss={val_metrics['loss']:.4f} "
+        f"acc={val_metrics['accuracy']:.4f}\n"
+        f"  best val acc={best_val_accuracy:.4f}\n",
+        flush=True,
+    )
+
+
 def fit(config: TrainingConfig) -> dict:
     """Run a complete train/validation loop from a TrainingConfig."""
     torch = _require_torch()
@@ -156,6 +186,8 @@ def fit(config: TrainingConfig) -> dict:
         pretrained=config.pretrained,
         input_mode=config.model_input_mode,
     ).to(device)
+
+    _print_run_start(config, device)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(
@@ -195,6 +227,14 @@ def fit(config: TrainingConfig) -> dict:
             history["best_epoch"] = epoch
             history["best_val_accuracy"] = best_val_accuracy
             save_checkpoint(run_dir / "best.pt", model, optimizer, config, epoch, epoch_record)
+
+        _print_epoch_summary(
+            epoch,
+            config,
+            train_metrics,
+            val_metrics,
+            best_val_accuracy,
+        )
 
         with open(run_dir / "metrics_history.json", "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2)
