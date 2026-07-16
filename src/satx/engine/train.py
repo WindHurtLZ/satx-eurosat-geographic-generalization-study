@@ -52,6 +52,38 @@ def _batch_accuracy(logits, labels) -> tuple[int, int]:
     return correct, labels.numel()
 
 
+def _macro_f1_score(y_true: list[int], y_pred: list[int], num_classes: int) -> float:
+    """Compute macro-F1 over a fixed number of classes."""
+    if not y_true:
+        return 0.0
+
+    y_true_array = np.asarray(y_true)
+    y_pred_array = np.asarray(y_pred)
+    f1_scores = []
+
+    for class_idx in range(num_classes):
+        true_positive = np.logical_and(
+            y_true_array == class_idx,
+            y_pred_array == class_idx,
+        ).sum()
+        false_positive = np.logical_and(
+            y_true_array != class_idx,
+            y_pred_array == class_idx,
+        ).sum()
+        false_negative = np.logical_and(
+            y_true_array == class_idx,
+            y_pred_array != class_idx,
+        ).sum()
+
+        denominator = (2 * true_positive) + false_positive + false_negative
+        if denominator == 0:
+            f1_scores.append(0.0)
+        else:
+            f1_scores.append((2 * true_positive) / denominator)
+
+    return float(np.mean(f1_scores))
+
+
 def train_one_epoch(model, dataloader, criterion, optimizer, device) -> dict:
     """Train for one epoch and return loss/accuracy metrics."""
     model.train()
@@ -81,8 +113,15 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device) -> dict:
     }
 
 
-def validate(model, dataloader, criterion, device, return_predictions: bool = False) -> dict:
-    """Evaluate on a validation DataLoader and return loss/accuracy metrics."""
+def validate(
+    model,
+    dataloader,
+    criterion,
+    device,
+    num_classes: int,
+    return_predictions: bool = False,
+) -> dict:
+    """Evaluate on a validation DataLoader and return loss/accuracy/F1 metrics."""
     torch = _require_torch()
     model.eval()
     total_loss = 0.0
@@ -108,13 +147,13 @@ def validate(model, dataloader, criterion, device, return_predictions: bool = Fa
             total_correct += correct
             total_seen += seen
 
-            if return_predictions:
-                all_y_true.extend(labels.detach().cpu().tolist())
-                all_y_pred.extend(preds.detach().cpu().tolist())
+            all_y_true.extend(labels.detach().cpu().tolist())
+            all_y_pred.extend(preds.detach().cpu().tolist())
 
     result = {
         "loss": total_loss / max(total_seen, 1),
         "accuracy": total_correct / max(total_seen, 1),
+        "macro_f1": _macro_f1_score(all_y_true, all_y_pred, num_classes),
     }
 
     if return_predictions:
@@ -157,7 +196,7 @@ def _print_epoch_summary(
     config: TrainingConfig,
     train_metrics: dict,
     val_metrics: dict,
-    best_val_accuracy: float,
+    best_val_macro_f1: float,
 ) -> None:
     """Print train/validation metrics after one epoch."""
     print(
@@ -165,8 +204,9 @@ def _print_epoch_summary(
         f"  train loss={train_metrics['loss']:.4f} "
         f"acc={train_metrics['accuracy']:.4f}\n"
         f"  val   loss={val_metrics['loss']:.4f} "
-        f"acc={val_metrics['accuracy']:.4f}\n"
-        f"  best val acc={best_val_accuracy:.4f}\n",
+        f"acc={val_metrics['accuracy']:.4f} "
+        f"macro_f1={val_metrics['macro_f1']:.4f}\n"
+        f"  best val macro_f1={best_val_macro_f1:.4f}\n",
         flush=True,
     )
 
@@ -199,11 +239,14 @@ def fit(config: TrainingConfig) -> dict:
     history = {
         "config": config.as_dict(),
         "device": str(device),
+        "selection_metric": "macro_f1",
         "epochs": [],
         "best_epoch": None,
+        "best_val_score": None,
         "best_val_accuracy": None,
+        "best_val_macro_f1": None,
     }
-    best_val_accuracy = -1.0
+    best_val_macro_f1 = -1.0
 
     for epoch in range(1, config.epochs + 1):
         train_metrics = train_one_epoch(model, train_loader, criterion, optimizer, device)
@@ -212,6 +255,7 @@ def fit(config: TrainingConfig) -> dict:
             val_loader,
             criterion,
             device,
+            config.num_classes,
             return_predictions=(epoch == config.epochs),
         )
         epoch_record = {
@@ -222,10 +266,12 @@ def fit(config: TrainingConfig) -> dict:
         history["epochs"].append(epoch_record)
 
         save_checkpoint(run_dir / "last.pt", model, optimizer, config, epoch, epoch_record)
-        if val_metrics["accuracy"] > best_val_accuracy:
-            best_val_accuracy = val_metrics["accuracy"]
+        if val_metrics["macro_f1"] > best_val_macro_f1:
+            best_val_macro_f1 = val_metrics["macro_f1"]
             history["best_epoch"] = epoch
-            history["best_val_accuracy"] = best_val_accuracy
+            history["best_val_score"] = best_val_macro_f1
+            history["best_val_accuracy"] = val_metrics["accuracy"]
+            history["best_val_macro_f1"] = best_val_macro_f1
             save_checkpoint(run_dir / "best.pt", model, optimizer, config, epoch, epoch_record)
 
         _print_epoch_summary(
@@ -233,7 +279,7 @@ def fit(config: TrainingConfig) -> dict:
             config,
             train_metrics,
             val_metrics,
-            best_val_accuracy,
+            best_val_macro_f1,
         )
 
         with open(run_dir / "metrics_history.json", "w", encoding="utf-8") as f:
