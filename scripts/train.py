@@ -22,7 +22,8 @@ def main():
     print(
         "Training complete. "
         f"Best epoch: {history['best_epoch']}, "
-        f"best val accuracy: {history['best_val_accuracy']:.4f}"
+        f"best val macro_f1: {history['best_val_macro_f1']:.4f}, "
+        f"val accuracy at best epoch: {history['best_val_accuracy']:.4f}"
     )
     print(f"Outputs: {config.run_dir()}")
 
