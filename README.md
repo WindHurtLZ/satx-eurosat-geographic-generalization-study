@@ -66,6 +66,21 @@ python scripts/train.py configs/rgb_spatial.yaml
 python scripts/train.py configs/ms_spatial.yaml
 ```
 
+To screen learning rate and weight decay combinations, run grid search from
+the terminal:
+
+```bash
+python scripts/grid_search.py --modality rgb --split-type spatial
+```
+
+Grid search selects the best hyperparameters by validation macro-F1 and writes
+them to `outputs/grid/<modality>_<split_type>/best_config.json`. Final training
+can then read that file directly:
+
+```bash
+python scripts/train.py --modality rgb --split-type spatial
+```
+
 The config files default to 5 epochs; reduce `epochs` for local smoke tests.
 
 Note: All training and evaluation paths are resolved from the repository root,
