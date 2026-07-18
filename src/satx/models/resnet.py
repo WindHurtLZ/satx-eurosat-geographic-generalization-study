@@ -22,12 +22,15 @@ def _require_torchvision():
 
 def _copy_rgb_weights_to_extra_channels(new_conv, old_conv, in_channels):
     """Initialize non-RGB first-conv weights from pretrained RGB filters."""
-    old_weight = old_conv.weight.data
-    new_conv.weight.data[:, :3, :, :] = old_weight
-    if in_channels > 3:
-        mean_weight = old_weight.mean(dim=1, keepdim=True)
-        new_conv.weight.data[:, 3:, :, :] = mean_weight.repeat(1, in_channels - 3, 1, 1)
+    old_weight = old_conv.weight.detach()
+    mean_weight = old_weight.mean(dim=1, keepdim=True)
+    new_weight = new_conv.weight.detach()
 
+    new_weight.copy_(mean_weight.repeat(1, in_channels, 1, 1))
+
+    new_weight[:, 3, :, :].copy_(old_weight[:, 0, :, :])  # R -> B04
+    new_weight[:, 2, :, :].copy_(old_weight[:, 1, :, :])  # G -> B03
+    new_weight[:, 1, :, :].copy_(old_weight[:, 2, :, :])  # B -> B02
 
 def build_resnet50(
     *,
