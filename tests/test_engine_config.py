@@ -39,6 +39,9 @@ def test_training_config_rejects_invalid_values():
     with pytest.raises(ValueError, match="batch_size"):
         TrainingConfig(batch_size=0)
 
+    with pytest.raises(ValueError, match="normalization"):
+        TrainingConfig(normalization="imagenet")
+
 
 def test_load_training_config_json(tmp_path):
     path = tmp_path / "config.json"

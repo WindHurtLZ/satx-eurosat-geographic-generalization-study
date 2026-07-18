@@ -12,6 +12,7 @@ from satx.utils.paths import resolve_project_path
 Modality = Literal["rgb", "ms"]
 SplitType = Literal["random", "spatial", "standard"]
 ModelInputMode = Literal["direct", "adapter"]
+NormalizationMode = Literal["none", "zscore"]
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,7 @@ class TrainingConfig:
     model_input_mode: ModelInputMode = "direct"
     num_classes: int = 10
     pretrained: bool = False
+    normalization: NormalizationMode = "none"
     epochs: int = 5
     batch_size: int = 32
     num_workers: int = 0
@@ -39,6 +41,7 @@ class TrainingConfig:
         valid_modalities = {"rgb", "ms"}
         valid_split_types = {"random", "spatial", "standard"}
         valid_input_modes = {"direct", "adapter"}
+        valid_normalization_modes = {"none", "zscore"}
 
         if self.modality not in valid_modalities:
             raise ValueError(f"modality must be one of {sorted(valid_modalities)}.")
@@ -47,6 +50,10 @@ class TrainingConfig:
         if self.model_input_mode not in valid_input_modes:
             raise ValueError(
                 f"model_input_mode must be one of {sorted(valid_input_modes)}."
+            )
+        if self.normalization not in valid_normalization_modes:
+            raise ValueError(
+                f"normalization must be one of {sorted(valid_normalization_modes)}."
             )
         if self.num_classes < 1:
             raise ValueError("num_classes must be positive.")
@@ -74,9 +81,11 @@ class TrainingConfig:
     def run_name(self) -> str:
         """Stable default run name used for outputs and checkpoints."""
         weights = "pretrained" if self.pretrained else "scratch"
+        preprocessing = "" if self.normalization == "none" else f"_{self.normalization}"
         return (
             f"resnet50_{self.modality}_{self.split_type}_"
-            f"{self.model_input_mode}_{weights}_seed{self.seed}"
+            f"{self.model_input_mode}_{weights}"
+            f"{preprocessing}_seed{self.seed}"
         )
 
     def as_dict(self) -> dict:

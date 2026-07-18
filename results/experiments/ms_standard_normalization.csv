@@ -1,0 +1,5 @@
+experiment_id,modality,split_type,input_mode,pretrained,normalization,epochs,batch_size,learning_rate,weight_decay,seed,best_epoch,best_val_macro_f1,best_val_accuracy
+ms_std_pretrained_raw_s42,ms,standard,direct,true,none,10,32,0.0001,0.001,42,3,0.977916,0.978889
+ms_std_pretrained_zscore_s42,ms,standard,direct,true,zscore,10,32,0.0001,0.001,42,10,0.980968,0.981667
+ms_std_scratch_raw_s42,ms,standard,direct,false,none,10,32,0.0001,0.001,42,8,0.893949,0.900185
+ms_std_scratch_zscore_s42,ms,standard,direct,false,zscore,10,32,0.0001,0.001,42,10,0.911563,0.914815
