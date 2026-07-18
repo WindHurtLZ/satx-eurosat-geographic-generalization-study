@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from .config import TrainingConfig
 
-
 def build_dataloaders(config: TrainingConfig):
     """Build train and validation DataLoaders from a training config."""
     try:
@@ -16,11 +15,24 @@ def build_dataloaders(config: TrainingConfig):
         ) from exc
 
     from satx.data import EuroSATDataset
+    from satx.data.transforms import build_eval_transform, build_train_transform
+
+    train_transform = build_train_transform(
+        modality=config.modality,
+        split_type=config.split_type,
+        normalization=config.normalization,
+    )
+    evaluation_transform = build_eval_transform(
+        modality=config.modality,
+        split_type=config.split_type,
+        normalization=config.normalization,
+    )
 
     train_dataset = EuroSATDataset(
         modality=config.modality,
         split_type=config.split_type,
         split="train",
+        transform=train_transform,
         data_dir=config.data_dir,
         splits_dir=config.splits_dir,
     )
@@ -28,6 +40,7 @@ def build_dataloaders(config: TrainingConfig):
         modality=config.modality,
         split_type=config.split_type,
         split="val",
+        transform=evaluation_transform,
         data_dir=config.data_dir,
         splits_dir=config.splits_dir,
     )
