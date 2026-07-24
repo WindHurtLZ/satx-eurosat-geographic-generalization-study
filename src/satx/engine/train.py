@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
 import json
 import random
 from pathlib import Path
@@ -32,6 +35,10 @@ def set_seed(seed: int) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms(True)
 
 
 def resolve_device(device: str = "auto"):
