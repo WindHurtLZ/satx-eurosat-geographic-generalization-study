@@ -2,11 +2,22 @@
 
 from __future__ import annotations
 
+import random
+import numpy as np
+
 from .config import TrainingConfig
+
+
+def seed_worker(worker_id: int) -> None:
+    import torch
+    worker_seed = torch.initial_seed() % (2 ** 32)
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 def build_dataloaders(config: TrainingConfig):
     """Build train and validation DataLoaders from a training config."""
     try:
+        import torch
         from torch.utils.data import DataLoader
     except ImportError as exc:
         raise ImportError(
@@ -53,6 +64,26 @@ def build_dataloaders(config: TrainingConfig):
     if config.num_workers > 0:
         loader_kwargs["persistent_workers"] = True
 
-    train_loader = DataLoader(train_dataset, shuffle=True, **loader_kwargs)
-    val_loader = DataLoader(val_dataset, shuffle=False, **loader_kwargs)
+    train_generator = torch.Generator()
+    train_generator.manual_seed(config.seed)
+
+    val_generator = torch.Generator()
+    val_generator.manual_seed(config.seed + 1)
+
+    train_loader = DataLoader(
+        train_dataset,
+        shuffle=True,
+        generator=train_generator,
+        worker_init_fn=seed_worker,
+        **loader_kwargs
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        shuffle=False,
+        generator=val_generator,
+        worker_init_fn=seed_worker,
+        **loader_kwargs
+    )
+
     return train_loader, val_loader
