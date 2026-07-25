@@ -218,7 +218,24 @@ def _print_epoch_summary(
     )
 
 
-def fit(config: TrainingConfig) -> dict:
+def load_run_model(run_dir, device, checkpoint="best.pt"):
+    """Rebuild architecture from a checkpoint's config and load weights."""
+    torch = _require_torch()
+    state = torch.load(
+        Path(run_dir) / checkpoint, map_location=device, weights_only=False,
+    )
+    config = TrainingConfig.from_dict(state["config"])
+    model = build_resnet50(
+        num_classes=config.num_classes,
+        in_channels=config.in_channels,
+        pretrained=False,
+        input_mode=config.model_input_mode,
+    )
+    model.load_state_dict(state["model_state_dict"])
+    return model.to(device).eval(), config
+
+
+def fit(config: TrainingConfig, dataloaders_fn=None) -> dict:
     """Run a complete train/validation loop from a TrainingConfig."""
     torch = _require_torch()
     set_seed(config.seed)
@@ -226,7 +243,8 @@ def fit(config: TrainingConfig) -> dict:
     run_dir = config.run_dir()
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    train_loader, val_loader = build_dataloaders(config)
+    _build = dataloaders_fn or build_dataloaders
+    train_loader, val_loader = _build(config)
     model = build_resnet50(
         num_classes=config.num_classes,
         in_channels=config.in_channels,
@@ -293,3 +311,15 @@ def fit(config: TrainingConfig) -> dict:
             json.dump(history, f, indent=2)
 
     return history
+
+
+def fit_noisy(config: TrainingConfig, kind: str, level: float) -> dict:
+    """Train with noise-augmented inputs. Falls back to ``fit`` for clean."""
+    if kind == "none" or level <= 0:
+        return fit(config)
+    from .data import build_noisy_dataloaders
+
+    return fit(
+        config,
+        dataloaders_fn=lambda cfg: build_noisy_dataloaders(cfg, kind, level),
+    )

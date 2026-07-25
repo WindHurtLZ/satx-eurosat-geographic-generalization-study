@@ -16,9 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from satx.engine import TrainingConfig, fit
 from satx.utils.paths import resolve_project_path
 
-
 SCREEN_EPOCHS = 5
-LEARNING_RATES = [1e-4, 3e-4, 1e-3]
+LEARNING_RATES = [5e-5, 1e-4, 3e-4]
 WEIGHT_DECAYS = [1e-5, 1e-4, 1e-3]
 
 
@@ -41,11 +40,19 @@ def parse_args():
     )
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--num-workers", type=int, default=4)
-    parser.add_argument("--pin-memory", action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("--model-input-mode", choices=["direct", "adapter"], default="direct")
-    parser.add_argument("--pretrained", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--pin-memory", action=argparse.BooleanOptionalAction, default=False
+    )
+    parser.add_argument(
+        "--model-input-mode", choices=["direct", "adapter"], default="direct"
+    )
+    parser.add_argument(
+        "--pretrained", action=argparse.BooleanOptionalAction, default=True
+    )
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--learning-rates", type=float, nargs="+", default=LEARNING_RATES)
+    parser.add_argument(
+        "--learning-rates", type=float, nargs="+", default=LEARNING_RATES
+    )
     parser.add_argument("--weight-decays", type=float, nargs="+", default=WEIGHT_DECAYS)
     parser.add_argument(
         "--force",
@@ -59,7 +66,9 @@ def main():
     args = parse_args()
     grid_name = f"{args.modality}_{args.split_type}"
     summary_path = resolve_project_path(f"outputs/grid/{grid_name}/screen_summary.json")
-    best_config_path = resolve_project_path(f"outputs/grid/{grid_name}/best_config.json")
+    best_config_path = resolve_project_path(
+        f"outputs/grid/{grid_name}/best_config.json"
+    )
 
     if summary_path.exists() and not args.force:
         results = json.loads(summary_path.read_text())
@@ -124,8 +133,7 @@ def main():
         )
 
     lookup = {
-        (r["learning_rate"], r["weight_decay"]): r["best_val_macro_f1"]
-        for r in results
+        (r["learning_rate"], r["weight_decay"]): r["best_val_macro_f1"] for r in results
     }
     print(f"\nbest macro-F1 within {results[0]['epochs']} screening epochs")
     print("lr \\ wd    " + "".join(f"{wd:<10g}" for wd in args.weight_decays))
