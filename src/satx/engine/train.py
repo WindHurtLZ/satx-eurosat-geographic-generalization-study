@@ -14,7 +14,7 @@ import numpy as np
 from .config import TrainingConfig
 from .data import build_dataloaders
 from satx.models import build_resnet50
-
+from satx.models.spectral_group_dropout import SpectralGroupDropout
 
 def _require_torch():
     try:
@@ -91,9 +91,22 @@ def _macro_f1_score(y_true: list[int], y_pred: list[int], num_classes: int) -> f
     return float(np.mean(f1_scores))
 
 
-def train_one_epoch(model, dataloader, criterion, optimizer, device) -> dict:
+def train_one_epoch(
+        model,
+        dataloader,
+        criterion,
+        optimizer,
+        device,
+        spectral_dropout: SpectralGroupDropout | None = None
+) -> dict:
     """Train for one epoch and return loss/accuracy metrics."""
     model.train()
+
+    # Spectral dropout exp in training if not none
+    if spectral_dropout is not None:
+        spectral_dropout.train()
+        spectral_dropout.reset_epoch_counts()
+
     total_loss = 0.0
     total_correct = 0
     total_seen = 0
@@ -101,6 +114,9 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device) -> dict:
     for images, labels in dataloader:
         images = images.to(device, non_blocking=True).float()
         labels = labels.to(device, non_blocking=True).long()
+
+        if spectral_dropout is not None:
+            images = spectral_dropout(images)
 
         optimizer.zero_grad(set_to_none=True)
         logits = model(images)
@@ -114,10 +130,16 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device) -> dict:
         total_correct += correct
         total_seen += seen
 
-    return {
+    result = {
         "loss": total_loss / max(total_seen, 1),
         "accuracy": total_correct / max(total_seen, 1),
+        "mask_counts": None,
     }
+
+    if spectral_dropout is not None:
+        result["mask_counts"] = spectral_dropout.epoch_mask_counts
+
+    return result
 
 
 def validate(
@@ -234,6 +256,15 @@ def fit(config: TrainingConfig) -> dict:
         input_mode=config.model_input_mode,
     ).to(device)
 
+    # call spectral drop exp
+    spectral_dropout = None
+    if config.group_dropout_p > 0.0:
+
+        spectral_dropout = SpectralGroupDropout(
+            p=config.group_dropout_p,
+            seed=config.dropout_seed,
+        )
+
     _print_run_start(config, device)
 
     criterion = torch.nn.CrossEntropyLoss()
@@ -256,7 +287,7 @@ def fit(config: TrainingConfig) -> dict:
     best_val_macro_f1 = -1.0
 
     for epoch in range(1, config.epochs + 1):
-        train_metrics = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        train_metrics = train_one_epoch(model, train_loader, criterion, optimizer, device, spectral_dropout=spectral_dropout)
         val_metrics = validate(
             model,
             val_loader,
