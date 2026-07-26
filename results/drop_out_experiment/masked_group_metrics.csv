@@ -1,0 +1,6 @@
+test_condition,baseline_accuracy,dropout_accuracy,accuracy_difference_pp,baseline_macro_f1,dropout_macro_f1,macro_f1_difference_pp,baseline_macro_f1_drop_pp,dropout_macro_f1_drop_pp,robustness_gain_pp
+CLEAN,0.9469,0.9304,-1.65 pp,0.9160,0.8961,-1.99 pp,+0.00 pp,+0.00 pp,+0.00 pp
+VISIBLE,0.6756,0.8994,+22.39 pp,0.5226,0.8381,+31.56 pp,+39.34 pp,+5.80 pp,+33.55 pp
+RED_EDGE_NIR,0.8778,0.9113,+3.35 pp,0.8335,0.8761,+4.27 pp,+8.25 pp,+1.99 pp,+6.26 pp
+ATMOSPHERIC,0.9424,0.9307,-1.17 pp,0.9172,0.9049,-1.23 pp,-0.12 pp,-0.88 pp,+0.76 pp
+SWIR,0.9250,0.9130,-1.20 pp,0.9007,0.8695,-3.13 pp,+1.53 pp,+2.66 pp,-1.14 pp
