@@ -87,3 +87,52 @@ def build_dataloaders(config: TrainingConfig):
     )
 
     return train_loader, val_loader
+
+
+def build_test_dataloader(config: TrainingConfig):
+    try:
+        import torch
+        from torch.utils.data import DataLoader
+    except ImportError as exc:
+        raise ImportError(
+            "Building SatX DataLoaders requires torch. "
+            "Install it with `python -m pip install torch`."
+        ) from exc
+
+    from satx.data import EuroSATDataset
+    from satx.data.transforms import build_eval_transform
+
+    evaluation_transform = build_eval_transform(
+        modality=config.modality,
+        split_type=config.split_type,
+        normalization=config.normalization,
+    )
+
+    test_dataset = EuroSATDataset(
+        modality=config.modality,
+        split_type=config.split_type,
+        split="test",
+        transform=evaluation_transform,
+        data_dir=config.data_dir,
+        splits_dir=config.splits_dir,
+    )
+
+    loader_kwargs = {
+        "batch_size": config.batch_size,
+        "num_workers": config.num_workers,
+        "pin_memory": config.pin_memory,
+    }
+
+    if config.num_workers > 0:
+        loader_kwargs["persistent_workers"] = True
+
+    test_generator = torch.Generator()
+    test_generator.manual_seed(config.seed + 2)
+
+    return DataLoader(
+        test_dataset,
+        shuffle=False,
+        generator=test_generator,
+        worker_init_fn=seed_worker,
+        **loader_kwargs,
+    )

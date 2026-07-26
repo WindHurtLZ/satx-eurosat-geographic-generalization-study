@@ -28,6 +28,8 @@ class TrainingConfig:
     num_classes: int = 10
     pretrained: bool = False
     normalization: NormalizationMode = "none"
+    group_dropout_p: float = 0.0
+    dropout_seed: int = 42
     epochs: int = 5
     batch_size: int = 32
     num_workers: int = 0
@@ -54,6 +56,16 @@ class TrainingConfig:
         if self.normalization not in valid_normalization_modes:
             raise ValueError(
                 f"normalization must be one of {sorted(valid_normalization_modes)}."
+            )
+        if not 0.0 <= self.group_dropout_p <= 1.0:
+            raise ValueError("group_dropout_p must be between 0 and 1.")
+        if self.group_dropout_p > 0.0 and self.modality != "ms":
+            raise ValueError(
+                "Spectral-group dropout is only supported for modality='ms'."
+            )
+        if self.group_dropout_p > 0.0 and self.normalization != "zscore":
+            raise ValueError(
+                "Spectral-group dropout requires normalization='zscore' "
             )
         if self.num_classes < 1:
             raise ValueError("num_classes must be positive.")
@@ -82,10 +94,18 @@ class TrainingConfig:
         """Stable default run name used for outputs and checkpoints."""
         weights = "pretrained" if self.pretrained else "scratch"
         preprocessing = "" if self.normalization == "none" else f"_{self.normalization}"
+        dropout = ""
+        if self.group_dropout_p > 0.0:
+            probability_tag = round(self.group_dropout_p * 100)
+            dropout = (
+                f"_drop_p{probability_tag}"
+                f"_dseed{self.dropout_seed}"
+            )
         return (
             f"resnet50_{self.modality}_{self.split_type}_"
             f"{self.model_input_mode}_{weights}"
             f"{preprocessing}_seed{self.seed}"
+            f"{dropout}"
         )
 
     def as_dict(self) -> dict:
