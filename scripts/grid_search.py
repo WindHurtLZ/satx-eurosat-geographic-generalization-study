@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument("--modality", choices=["rgb", "ms"], default="rgb")
     parser.add_argument(
         "--split-type",
-        choices=["standard", "spatial", "random"],
+        choices=["standard", "spatial"],
         default="spatial",
         help="Dataset split to use for train/validation.",
     )
