@@ -3,7 +3,9 @@ split_type: spatial
 model_input_mode: direct
 pretrained: true
 normalization: zscore
-epochs: 10
+group_dropout_p: 0.9
+dropout_seed: 42
+epochs: 20
 batch_size: 32
 num_workers: 4
 learning_rate: 0.0001

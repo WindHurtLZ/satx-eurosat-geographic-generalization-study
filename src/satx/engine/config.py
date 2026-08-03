@@ -10,7 +10,7 @@ from typing import Literal
 from satx.utils.paths import resolve_project_path
 
 Modality = Literal["rgb", "ms"]
-SplitType = Literal["random", "spatial", "standard"]
+SplitType = Literal["spatial", "standard"]
 ModelInputMode = Literal["direct", "adapter"]
 NormalizationMode = Literal["none", "zscore"]
 
@@ -41,7 +41,7 @@ class TrainingConfig:
 
     def __post_init__(self) -> None:
         valid_modalities = {"rgb", "ms"}
-        valid_split_types = {"random", "spatial", "standard"}
+        valid_split_types = {"spatial", "standard"}
         valid_input_modes = {"direct", "adapter"}
         valid_normalization_modes = {"none", "zscore"}
 

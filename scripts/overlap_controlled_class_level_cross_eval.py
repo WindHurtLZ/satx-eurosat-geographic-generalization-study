@@ -76,7 +76,7 @@ def parse_args():
     parser.add_argument(
         "--test-splits",
         nargs="+",
-        choices=["standard", "spatial", "random"],
+        choices=["standard", "spatial"],
         default=["standard", "spatial"],
         help="Test split types to evaluate each checkpoint on.",
     )
@@ -147,8 +147,6 @@ def split_file_path(config: TrainingConfig, split_type: str, split: str) -> Path
         filename = f"eurosat-spatial-{split}.txt"
     elif split_type == "standard":
         filename = f"eurosat-{split}.txt"
-    elif split_type == "random":
-        filename = f"eurosat-random-{split}.txt"
     else:
         raise ValueError(f"Unknown split_type: {split_type}")
 

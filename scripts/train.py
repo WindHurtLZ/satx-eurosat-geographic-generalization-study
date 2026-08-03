@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument("--modality", choices=["rgb", "ms"], default="rgb")
     parser.add_argument(
         "--split-type",
-        choices=["standard", "spatial", "random"],
+        choices=["spatial", "standard"],
         default="spatial",
         help="Used to find outputs/grid/<modality>_<split_type>/best_config.json.",
     )

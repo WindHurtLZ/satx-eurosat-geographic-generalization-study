@@ -1,92 +1,69 @@
-# SatX EuroSAT Geographic Generalization Study
+# SatX EuroSAT Geographic Generalization
 
-This repository contains the SatX team project for studying geographic generalization in EuroSAT land-cover classification with RGB and multispectral inputs.
+SatX studies geographic generalization in EuroSAT land-cover classification. The project compares standard and spatial splits using RGB and 13-band multispectral inputs, with additional spectral-group dropout and robustness experiments.
 
 ## Setup
 
-Clone repo and create the conda environment:
+Create the environment:
 
-```bash
+```
 conda env create -f environment.yml
 conda activate satx
 ```
 
-Install project as a Python package:
+Install PyTorch, project dependencies, and JupyterLab:
 
-```bash
+```
+python -m pip install torch torchvision torchgeo rasterio jupyterlab
 python -m pip install -e .
 ```
 
-Install PyTorch and TorchGeo (not in `environment.yml`; installed via pip; )
-Check before running:
+Register the environment as a Jupyter kernel:
 
-```bash
-python -m pip install torch torchvision torchgeo
+```
+python -m ipykernel install --user --name satx --display-name "Python (satx)"
 ```
 
-Run the check:
+Check the installation:
 
-```bash
+```
 python scripts/check_imports.py
-pytest -q
 ```
 
-Data Download:
+### Dataset
+
+Download `EuroSAT_MS.zip` from:
+
 https://zenodo.org/records/7711810/files/EuroSAT_MS.zip
 
-Extract to ./data/EuroSAT_MS
+Extract it to:
 
-
-## Training Engine
-
-Use the training engine to run ResNet-50 EuroSAT experiments from Python or a config file.
-Example:
-
-```python
-from satx.engine import TrainingConfig, fit
-
-config = TrainingConfig(
-    modality="rgb",
-    split_type="spatial",
-    epochs=5,
-    batch_size=32,
-    pretrained=False,
-)
-history = fit(config)
+```
+data/
+└── EuroSAT_MS/
+    ├── AnnualCrop/
+    ├── Forest/
+    └── ...
 ```
 
-Set `modality="ms"` for 13-band EuroSAT inputs. Set
-`model_input_mode="adapter"` to use a 1x1 projection from 13 bands to RGB
-before ResNet-50. Training outputs are written under `outputs/runs/`.
+The standard and spatial split files are already stored in `data/splits_data/`.
 
-You can also run from a config file:
+## Experiments
 
-```bash
-python scripts/train.py configs/rgb_spatial.yaml
-python scripts/train.py configs/ms_spatial.yaml
+Start JupyterLab from the repository root:
+
+```
+jupyter lab
 ```
 
-To screen learning rate and weight decay combinations, run grid search from
-the terminal:
+Open the notebooks under `notebooks/`:
 
-```bash
-python scripts/grid_search.py --modality rgb --split-type spatial
-```
+- `SatX_Baseline_Exp.ipynb` — RGB and multispectral baselines
+- `Overlap_Controlled_Cross_Eval_Exp.ipynb` — overlap-controlled cross-evaluation
+- `Group_Dropout_Exp.ipynb` — spectral-group dropout and masked-band evaluation
+- `Noise_Exp.ipynb` — noise robustness experiments
 
-Grid search selects the best hyperparameters by validation macro-F1 and writes
-them to `outputs/grid/<modality>_<split_type>/best_config.json`. Final training
-can then read that file directly:
-
-```bash
-python scripts/train.py --modality rgb --split-type spatial
-```
-
-The config files default to 5 epochs; reduce `epochs` for local smoke tests.
-
-Note: All training and evaluation paths are resolved from the repository root,
-not from the process working directory. Running the same configuration from
-the project root or notebooks writes to the same
-`outputs/runs/<run_name>` directory.
+Run cells from top to bottom. Check the notebook run switches before enabling training or evaluation. Generated artifacts are written to `outputs/` and `results/`.
 
 ## PR Rule
 

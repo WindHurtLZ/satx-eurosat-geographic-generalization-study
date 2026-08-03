@@ -1,5 +1,4 @@
 import os
-import random
 
 import numpy as np
 import torch
@@ -19,52 +18,6 @@ CLASS_NAMES = [
     "SeaLake",
 ]
 CLASS_TO_IDX = {name: idx for idx, name in enumerate(CLASS_NAMES)}
-
-
-def random_splits(data_dir="./data", splits_dir="./splits_data"):
-    """Generates stratified random split files if they do not exist yet."""
-    random_train_file = os.path.join(splits_dir, "eurosat-random-train.txt")
-    if os.path.exists(random_train_file):
-        return
-
-    os.makedirs(splits_dir, exist_ok=True)
-    class_groups = {name: [] for name in CLASS_NAMES}
-
-    search_base = os.path.join(data_dir, "EuroSAT_MS")
-
-    for class_name in CLASS_NAMES:
-        class_dir = os.path.join(search_base, class_name)
-        if os.path.exists(class_dir):
-            for f in os.listdir(class_dir):
-                if f.endswith((".jpg", ".tif")):
-                    base = os.path.splitext(f)[0]
-                    class_groups[class_name].append(f"{base}.jpg")
-
-    train_list, val_list, test_list = [], [], []
-    for class_name, files in class_groups.items():
-        files = sorted(
-            files, key=lambda x: int(x.split("_")[-1].split(".")[0]) if "_" in x else x
-        )
-        rng = random.Random(42 + CLASS_TO_IDX[class_name])
-        rng.shuffle(files)
-
-        n = len(files)
-        n_train = int(n * 0.6)
-        n_val = int(n * 0.2)
-
-        train_list.extend(files[:n_train])
-        val_list.extend(files[n_train : n_train + n_val])
-        test_list.extend(files[n_train + n_val :])
-
-    for split_name, lst in [
-        ("train", train_list),
-        ("val", val_list),
-        ("test", test_list),
-    ]:
-        out_path = os.path.join(splits_dir, f"eurosat-random-{split_name}.txt")
-        with open(out_path, "w") as f:
-            for item in sorted(lst):
-                f.write(f"{item}\n")
 
 
 class EuroSATDataset(Dataset):
@@ -99,13 +52,10 @@ class EuroSATDataset(Dataset):
             split_file = os.path.join(splits_dir, f"eurosat-spatial-{split}.txt")
         elif split_type == "standard":
             split_file = os.path.join(splits_dir, f"eurosat-{split}.txt")
-        elif split_type == "random":
-            random_splits(data_dir, splits_dir)
-            split_file = os.path.join(splits_dir, f"eurosat-random-{split}.txt")
         else:
             raise ValueError(
                 f"Unknown split_type '{split_type}'. "
-                "Expected one of: 'spatial', 'standard', 'random'."
+                "Expected one of: 'spatial', 'standard'."
             )
 
         with open(split_file, "r") as f:
