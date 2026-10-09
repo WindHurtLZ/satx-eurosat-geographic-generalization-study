@@ -22,7 +22,7 @@ Team SatX · RGB and 13-band Sentinel-2 ResNet-50 models, longitude-based splits
 > [!NOTE]
 > Research project by team SatX at Georgia Tech (2026). Every number comes from single-seed runs (seed 42) saved in [`results/`](results/) and the experiment notebooks. Nothing on this page was run again.
 
-A ResNet-50 scores 0.978 macro-F1 on EuroSAT's usual random split. Train it on patches west of 10.5°E and test it east of 17.4°E, and it drops to 0.916. The same model almost breaks when one group of spectral bands is missing. Without the visible bands, macro-F1 falls to 0.52. This project measures both problems. It then trains the model with **spectral-group dropout**, so the model learns not to depend on any single band group. The idea adapts channel dropout to Sentinel-2 band groups.
+A 13-band ResNet-50 scores 0.978 macro-F1 on EuroSAT's usual random split. Train it on patches west of 10.5°E and test it east of 17.4°E, and it drops to 0.916. The same model almost breaks when one group of spectral bands is missing. Without the visible bands, macro-F1 falls to 0.52. This project measures both problems. It then trains the model with **spectral-group dropout**, so the model learns not to depend on any single band group. The idea adapts channel dropout to Sentinel-2 band groups.
 
 I planned and coordinated our four-person team and set up and maintained this repository. I built the multispectral baselines and their normalization. I designed, built and tested spectral-group dropout, and I ran the final experiments in the report.
 
@@ -30,7 +30,7 @@ I planned and coordinated our four-person team and set up and maintained this re
 
 - 🌍 **[Spatial splits cost about 6 points](#geographic-gap):** Macro-F1 falls 6.1 points for RGB and 6.2 points for 13 bands when the test region changes. Extra bands help both splits by about the same amount, but they do not close the gap.
 - 🛰️ **[Spectral-group dropout keeps the model working when bands go missing](#spectral-group-dropout):** Without the visible bands, macro-F1 rises from 0.52 to 0.84. Industrial F1 goes from 0.28 to 0.93, and Residential from 0.16 to 0.83. The cost is 2.0 points on clean images and small losses when atmospheric or SWIR bands are missing.
-- 🌾 **[The gap lives in farmland](#where-the-gap-lives):** On one shared, fair test set, Permanent Crop drops from 0.94 to 0.75 F1 and Pasture from 0.79 to 0.65. Forest, Residential and Sea / Lake barely move.
+- 🌾 **[The gap lives in farmland](#where-the-gap-lives):** On one shared, fair test set, Permanent Crop drops from 0.94 to 0.75 F1 and Pasture from 0.79 to 0.65 for the 13-band model. Forest, Residential and Sea / Lake barely move.
 - 📡 **[Noise training works across noise types](#sensor-noise):** In a teammate's study, training with shot noise lifts macro-F1 under Gaussian noise (σ = 0.1) from 0.53 to 0.87, with no loss on clean images.
 
 ## Method
